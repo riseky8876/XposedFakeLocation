@@ -4,20 +4,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.data.model.FavoriteLocation
 import com.noobexon.xposedfakelocation.manager.ui.map.MapViewModel
+import com.noobexon.xposedfakelocation.manager.ui.navigation.BottomNavBar
+import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
 import org.osmdroid.util.GeoPoint
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     navController: NavController,
@@ -27,50 +31,104 @@ fun FavoritesScreen(
     val favorites by favoritesViewModel.favorites.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Favorites") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+        containerColor = Color.White
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Import / Export buttons at top
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { /* TODO: import */ },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF111111),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.FileUpload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Import")
+                    }
+                    Button(
+                        onClick = { /* TODO: export */ },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF444444),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.FileDownload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Export")
                     }
                 }
-            )
-        }
-    ) { innerPadding ->
-        if (favorites.isEmpty()) {
+
+                // Favorites list or empty state
+                if (favorites.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No favorite locations.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFF888888)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        items(favorites) { favorite ->
+                            FavoriteItem(
+                                favorite = favorite,
+                                onClick = {
+                                    mapViewModel.updateClickedLocation(
+                                        GeoPoint(favorite.latitude, favorite.longitude)
+                                    )
+                                    navController.navigate(Screen.Map.route) {
+                                        popUpTo(Screen.Map.route) { inclusive = true }
+                                    }
+                                },
+                                onDelete = {
+                                    favoritesViewModel.removeFavorite(favorite)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Bottom Navigation Bar
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
             ) {
-                Text("No favorites added.")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                items(favorites) { favorite ->
-                    FavoriteItem(
-                        favorite = favorite,
-                        onClick = {
-                            mapViewModel.updateClickedLocation(GeoPoint(favorite.latitude, favorite.longitude))
-                            navController.navigateUp()
-                        },
-                        onDelete = {
-                            favoritesViewModel.removeFavorite(favorite)
-                        }
-                    )
-                }
+                BottomNavBar(navController = navController, currentRoute = Screen.Favorites.route)
             }
         }
     }
@@ -102,5 +160,6 @@ fun FavoriteItem(
                 }
             }
         )
+        HorizontalDivider()
     }
 }
