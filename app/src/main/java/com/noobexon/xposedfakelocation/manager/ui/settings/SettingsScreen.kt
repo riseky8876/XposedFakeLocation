@@ -1,5 +1,6 @@
 package com.noobexon.xposedfakelocation.manager.ui.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -13,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.compose.runtime.*
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.noobexon.xposedfakelocation.manager.ui.navigation.BottomNavBar
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
+import com.noobexon.xposedfakelocation.R
 
 // Dimension constants
 private object Dimensions {
@@ -181,6 +185,15 @@ fun SettingsScreen(
                 interactionSource = remember { MutableInteractionSource() }
             ) { focusManager.clearFocus() }
     ) {
+        // Background image
+        Image(
+            painter = painterResource(id = R.drawable.app_background),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            alpha = 0.25f
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
