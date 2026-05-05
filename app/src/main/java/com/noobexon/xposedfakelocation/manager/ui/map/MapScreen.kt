@@ -3,219 +3,225 @@ package com.noobexon.xposedfakelocation.manager.ui.map
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.data.model.FavoriteLocation
-import com.noobexon.xposedfakelocation.manager.ui.drawer.DrawerContent
 import com.noobexon.xposedfakelocation.manager.ui.map.components.AddToFavoritesDialog
 import com.noobexon.xposedfakelocation.manager.ui.map.components.GoToPointDialog
 import com.noobexon.xposedfakelocation.manager.ui.map.components.MapViewContainer
+import com.noobexon.xposedfakelocation.manager.ui.navigation.BottomNavBar
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     navController: NavController,
     mapViewModel: MapViewModel
 ) {
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val uiState by mapViewModel.uiState.collectAsStateWithLifecycle()
-    
-    // Extract values from UI state
+
     val isPlaying = uiState.isPlaying
     val isFabClickable = uiState.isFabClickable
-    val isLoading = uiState.loadingState == LoadingState.Loading
-    
-    // Dialog states
+
     val showGoToPointDialog = uiState.goToPointDialogState == DialogState.Visible
     val showAddToFavoritesDialog = uiState.addToFavoritesDialogState == DialogState.Visible
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    var coordInput by remember { mutableStateOf("") }
 
-    var showOptionsMenu by remember { mutableStateOf(false) }
-
-    // BackHandler to close the drawer when open
-    BackHandler(enabled = drawerState.isOpen) {
-        scope.launch { drawerState.close() }
+    // Parse and go to coordinate from search bar
+    fun handleCoordInput() {
+        val parts = coordInput.trim().split(",")
+        if (parts.size == 2) {
+            val lat = parts[0].trim().toDoubleOrNull()
+            val lng = parts[1].trim().toDoubleOrNull()
+            if (lat != null && lng != null) {
+                mapViewModel.goToPoint(lat, lng)
+                keyboardController?.hide()
+            } else {
+                Toast.makeText(context, "Invalid coordinates", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Format: lat, lng", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    // Scaffold with drawer
-    ModalNavigationDrawer(
-        drawerContent = {
-            DrawerContent(
-                onCloseDrawer = {
-                    scope.launch { drawerState.close() }
-                },
-                navController = navController
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Map as background
+        MapViewContainer(mapViewModel)
+
+        // Search bar at top
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .align(Alignment.TopCenter)
+        ) {
+            OutlinedTextField(
+                value = coordInput,
+                onValueChange = { coordInput = it },
+                placeholder = { Text("Enter coordinates (lat, lng)") },
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { handleCoordInput() }),
+                modifier = Modifier.fillMaxWidth()
             )
-        },
-        scrimColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.32f), // Custom scrim color
-        drawerState = drawerState,
-        gesturesEnabled = false,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                TopAppBar(
-                    title = { Text("XposedFakeLocation") },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    navigationIcon = {
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } }
-                        ) {
-                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                mapViewModel.triggerCenterMapEvent()
-                            }
-                        ) {
-                            Icon(imageVector = Icons.Default.MyLocation, contentDescription = "Center")
-                        }
-                        IconButton(
-                            onClick = {
-                                showOptionsMenu = true
-                            }
-                        ) {
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Options")
-                        }
-                        DropdownMenu(
-                            expanded = showOptionsMenu,
-                            onDismissRequest = { showOptionsMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(imageVector = Icons.Default.LocationSearching, contentDescription = "Go to Point") },
-                                text = { Text("Go to Point") },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    mapViewModel.showGoToPointDialog()
-                                }
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = "Add to Favorites") },
-                                text = { Text("Add to Favorites") },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    mapViewModel.showAddToFavoritesDialog()
-                                }
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(imageVector = Icons.Default.Star, contentDescription = "Favorites") },
-                                text = { Text("Favorites") },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    navController.navigate(Screen.Favorites.route)
-                                }
-                            )
-                            // add clear location feature
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear Location") },
-                                text = { Text("Clear Location") },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    mapViewModel.updateClickedLocation(null)
-                                },
-                                enabled = isFabClickable // allow clearing only when a location is marked.
-                            )
+        }
+
+        // Right side FAB buttons
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 12.dp, bottom = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Add to Favorites button
+            FloatingActionButton(
+                onClick = { mapViewModel.showAddToFavoritesDialog() },
+                containerColor = Color(0xFF333333),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.size(56.dp),
+                elevation = FloatingActionButtonDefaults.elevation(6.dp)
+            ) {
+                Icon(Icons.Default.Favorite, contentDescription = "Add to Favorites")
+            }
+
+            // Center/My Location button
+            FloatingActionButton(
+                onClick = { mapViewModel.triggerCenterMapEvent() },
+                containerColor = Color(0xFF111111),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.size(56.dp),
+                elevation = FloatingActionButtonDefaults.elevation(6.dp)
+            ) {
+                Icon(Icons.Default.MyLocation, contentDescription = "My Location")
+            }
+
+            // Play/Stop button
+            FloatingActionButton(
+                onClick = {
+                    if (isFabClickable) {
+                        val wasPlaying = isPlaying
+                        mapViewModel.togglePlaying()
+                        if (!wasPlaying) {
+                            Toast.makeText(context, "Fake Location Set", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Unset Fake Location", Toast.LENGTH_SHORT).show()
                         }
                     }
+                },
+                containerColor = if (isFabClickable) Color(0xFFEEEEEE) else Color(0xFFCCCCCC),
+                contentColor = if (isFabClickable) Color(0xFF333333) else Color(0xFF999999),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.size(56.dp),
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = if (isFabClickable) 6.dp else 0.dp
                 )
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        if (isFabClickable) {
-                            val wasPlaying = uiState.isPlaying
-                            mapViewModel.togglePlaying()
-                            if (!wasPlaying) {
-                                Toast.makeText(context, "Fake Location Set", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Unset Fake Location", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(16.dp),
-                    containerColor = if (isFabClickable) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                    },
-                    contentColor = if (isFabClickable) {
-                        contentColorFor(MaterialTheme.colorScheme.primary)
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = if (isFabClickable) 6.dp else 0.dp,
-                        pressedElevation = if (isFabClickable) 12.dp else 0.dp
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Stop" else "Play"
-                    )
-                }
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Stop" else "Play"
+                )
             }
-        ) { innerPadding ->
+        }
+
+        // Bottom Navigation Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+        ) {
+            BottomNavBar(navController = navController, currentRoute = Screen.Map.route)
+        }
+
+        // Active status snackbar
+        if (isPlaying) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp, start = 16.dp, end = 16.dp)
             ) {
-                MapViewContainer(mapViewModel)
-            }
-        }
-
-        if (showGoToPointDialog) {
-            GoToPointDialog(
-                onDismissRequest = { mapViewModel.hideGoToPointDialog() },
-                onGoToPoint = { latitude, longitude ->
-                    mapViewModel.goToPoint(latitude, longitude)
-                    mapViewModel.hideGoToPointDialog()
-                },
-                mapViewModel = mapViewModel
-            )
-        }
-
-        if (showAddToFavoritesDialog) {
-            // Prefill coordinates from the last clicked location (marker)
-            val lastClickedLocation = uiState.lastClickedLocation
-
-            LaunchedEffect(lastClickedLocation) {
-                mapViewModel.prefillCoordinatesFromMarker(
-                    lastClickedLocation?.latitude,
-                    lastClickedLocation?.longitude
-                )
-            }
-
-            AddToFavoritesDialog(
-                mapViewModel = mapViewModel,
-                onDismissRequest = { mapViewModel.hideAddToFavoritesDialog() },
-                onAddFavorite = { name, latitude, longitude ->
-                    val favorite = FavoriteLocation(name, latitude, longitude)
-                    mapViewModel.addFavoriteLocation(favorite)
-                    mapViewModel.hideAddToFavoritesDialog()
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color(0xFF222222),
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "Fake Location Is Active!",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
+            }
+        }
+    }
+
+    // Dialogs
+    if (showGoToPointDialog) {
+        GoToPointDialog(
+            onDismissRequest = { mapViewModel.hideGoToPointDialog() },
+            onGoToPoint = { latitude, longitude ->
+                mapViewModel.goToPoint(latitude, longitude)
+                mapViewModel.hideGoToPointDialog()
+            },
+            mapViewModel = mapViewModel
+        )
+    }
+
+    if (showAddToFavoritesDialog) {
+        val lastClickedLocation = uiState.lastClickedLocation
+        LaunchedEffect(lastClickedLocation) {
+            mapViewModel.prefillCoordinatesFromMarker(
+                lastClickedLocation?.latitude,
+                lastClickedLocation?.longitude
             )
         }
+        AddToFavoritesDialog(
+            mapViewModel = mapViewModel,
+            onDismissRequest = { mapViewModel.hideAddToFavoritesDialog() },
+            onAddFavorite = { name, latitude, longitude ->
+                val favorite = FavoriteLocation(name, latitude, longitude)
+                mapViewModel.addFavoriteLocation(favorite)
+                mapViewModel.hideAddToFavoritesDialog()
+            }
+        )
     }
 }
