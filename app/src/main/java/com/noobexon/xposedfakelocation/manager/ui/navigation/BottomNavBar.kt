@@ -27,7 +27,8 @@ data class BottomNavItem(
 @Composable
 fun BottomNavBar(
     navController: NavController,
-    currentRoute: String
+    currentRoute: String,
+    modifier: Modifier = Modifier
 ) {
     val items = listOf(
         BottomNavItem("Map", Screen.Map.route, Icons.Filled.Map, Icons.Outlined.Map),
@@ -36,6 +37,7 @@ fun BottomNavBar(
     )
 
     NavigationBar(
+        modifier = modifier,
         containerColor = Color(0xFFF0F0F0),
         contentColor = Color(0xFF111111),
         tonalElevation = 0.dp
