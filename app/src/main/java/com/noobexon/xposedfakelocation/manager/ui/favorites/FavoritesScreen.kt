@@ -49,7 +49,7 @@ fun FavoritesScreen(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                alpha = 0.25f
+                alpha = 1f
             )
 
             Column(modifier = Modifier.fillMaxSize()) {
