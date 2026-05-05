@@ -25,6 +25,7 @@ fun AppNavGraph(
             AboutScreen(navController = navController)
         }
         composable(route = Screen.Favorites.route) {
+            // Favorites sekarang pakai bottom nav, tidak perlu back button
             FavoritesScreen(navController = navController, mapViewModel)
         }
         composable(route = Screen.Map.route) {
