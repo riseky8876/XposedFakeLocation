@@ -1,13 +1,10 @@
-//SettingsScreen.kt
 package com.noobexon.xposedfakelocation.manager.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.compose.runtime.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import com.noobexon.xposedfakelocation.manager.ui.navigation.BottomNavBar
+import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
 
 // Dimension constants
 private object Dimensions {
@@ -165,97 +163,79 @@ private object SettingDefinitions {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    settingsViewModel: SettingsViewModel = viewModel ()
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
 
-    // Get settings from the definition object
     val allSettings = SettingDefinitions.getSettings(settingsViewModel)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Navigate back"
-                        )
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { focusManager.clearFocus() }
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { focusManager.clearFocus() }
+                .padding(horizontal = Dimensions.SPACING_MEDIUM)
+                .verticalScroll(scrollState)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = Dimensions.SPACING_MEDIUM)
-                    .verticalScroll(scrollState)
-            ) {
-                Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
-                
-                // Display settings by category
-                SettingDefinitions.CATEGORIES.forEach { (category, settingsInCategory) ->
-                    CategoryHeader(category)
-                    
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = Dimensions.SPACING_SMALL),
-                        shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
-                        elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
-                    ) {
-                        Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
-                            settingsInCategory.forEach { settingTitle ->
-                                val setting = allSettings.find { it.title == settingTitle }
-                                setting?.let {
-                                    when (setting) {
-                                        is DoubleSettingData -> {
-                                            DoubleSettingComposable(setting)
-                                        }
-                                        is FloatSettingData -> {
-                                            FloatSettingComposable(setting)
-                                        }
+            Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
+
+            // Display settings by category
+            SettingDefinitions.CATEGORIES.forEach { (category, settingsInCategory) ->
+                CategoryHeader(category)
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Dimensions.SPACING_SMALL),
+                    shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
+                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
+                ) {
+                    Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
+                        settingsInCategory.forEach { settingTitle ->
+                            val setting = allSettings.find { it.title == settingTitle }
+                            setting?.let {
+                                when (setting) {
+                                    is DoubleSettingData -> {
+                                        DoubleSettingComposable(setting)
                                     }
-                                    if (settingTitle != settingsInCategory.last()) {
-                                        HorizontalDivider(
-                                            modifier = Modifier.padding(vertical = Dimensions.SPACING_SMALL),
-                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                        )
+                                    is FloatSettingData -> {
+                                        FloatSettingComposable(setting)
                                     }
+                                }
+                                if (settingTitle != settingsInCategory.last()) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = Dimensions.SPACING_SMALL),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
                                 }
                             }
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
                 }
-                
-                // Add space at the bottom of the list
-                Spacer(modifier = Modifier.height(Dimensions.SPACING_LARGE))
+
+                Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
             }
+
+            // Extra space so content not hidden behind bottom nav
+            Spacer(modifier = Modifier.height(80.dp))
         }
+
+        // Bottom Navigation Bar
+        BottomNavBar(
+            navController = navController,
+            currentRoute = Screen.Settings.route,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
