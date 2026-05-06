@@ -1,33 +1,36 @@
 package com.noobexon.xposedfakelocation.manager.ui.settings
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.manager.ui.navigation.BottomNavBar
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
-import com.noobexon.xposedfakelocation.R
 
 // Dimension constants
 private object Dimensions {
@@ -185,13 +188,23 @@ fun SettingsScreen(
                 interactionSource = remember { MutableInteractionSource() }
             ) { focusManager.clearFocus() }
     ) {
-        // Background image
+        // Background image fullscreen
         Image(
             painter = painterResource(id = R.drawable.app_background),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            alpha = 1f
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Dark overlay for readability
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0x55000000), Color(0x88000000))
+                    )
+                )
         )
 
         Column(
@@ -202,33 +215,50 @@ fun SettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
+            // Title
+            Text(
+                text = "Settings",
+                color = Color.White,
+                fontSize = 28.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
             // Display settings by category
             SettingDefinitions.CATEGORIES.forEach { (category, settingsInCategory) ->
                 CategoryHeader(category)
 
-                Card(
+                // Liquid glass card
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = Dimensions.SPACING_SMALL),
-                    shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
+                        .padding(vertical = Dimensions.SPACING_SMALL)
+                        .clip(RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0x55FFFFFF), Color(0x22FFFFFF))
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color(0x99FFFFFF), Color(0x33FFFFFF))
+                            ),
+                            shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS)
+                        )
                 ) {
                     Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                         settingsInCategory.forEach { settingTitle ->
                             val setting = allSettings.find { it.title == settingTitle }
                             setting?.let {
                                 when (setting) {
-                                    is DoubleSettingData -> {
-                                        DoubleSettingComposable(setting)
-                                    }
-                                    is FloatSettingData -> {
-                                        FloatSettingComposable(setting)
-                                    }
+                                    is DoubleSettingData -> DoubleSettingComposable(setting)
+                                    is FloatSettingData -> FloatSettingComposable(setting)
                                 }
                                 if (settingTitle != settingsInCategory.last()) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(vertical = Dimensions.SPACING_SMALL),
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                        color = Color(0x44FFFFFF)
                                     )
                                 }
                             }
@@ -239,7 +269,6 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
             }
 
-            // Extra space so content not hidden behind bottom nav
             Spacer(modifier = Modifier.height(80.dp))
         }
 
@@ -264,7 +293,7 @@ fun CategoryHeader(title: String) {
             text = title,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = Color.White
             )
         )
         Spacer(modifier = Modifier.weight(1f))
@@ -272,7 +301,7 @@ fun CategoryHeader(title: String) {
             modifier = Modifier
                 .weight(2f)
                 .padding(start = Dimensions.SPACING_MEDIUM),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            color = Color(0x55FFFFFF)
         )
     }
 }
@@ -373,7 +402,8 @@ private fun <T : Number> SettingItem(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
                     )
                     
                     IconButton(
@@ -383,7 +413,7 @@ private fun <T : Number> SettingItem(
                         Icon(
                             Icons.Default.Info,
                             contentDescription = "More information about $title",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Color(0xAAFFFFFF),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -393,7 +423,7 @@ private fun <T : Number> SettingItem(
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color(0xCCFFFFFF),
                         modifier = Modifier.padding(top = Dimensions.SPACING_EXTRA_SMALL)
                     )
                 }
@@ -403,10 +433,10 @@ private fun <T : Number> SettingItem(
                 checked = useValue,
                 onCheckedChange = onUseValueChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Color(0x66FFFFFF),
+                    uncheckedThumbColor = Color(0xAAFFFFFF),
+                    uncheckedTrackColor = Color(0x33FFFFFF)
                 ),
                 modifier = Modifier.semantics { 
                     contentDescription = if (useValue) "Disable $title" else "Enable $title" 
@@ -435,6 +465,7 @@ private fun <T : Number> SettingItem(
                 Text(
                     text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
                     modifier = Modifier
                         .weight(1f)
                         .clickable { showExactValue = !showExactValue }
